@@ -91,7 +91,7 @@
             <strong>格式1 (時間+歌名):</strong> 00:00 intro 03:41 Baddie<br>
             <strong>格式2 (換行分隔):</strong> 時間與歌名各佔一行<br>
             <strong>格式3 (純歌名):</strong> 僅歌名列表 (將自動編號)
-          </div>
+        _ </div>
                     <textarea id="songListInput" placeholder="請輸入歌單內容..." class="w-full flex-1 min-h-[150px] p-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 transition resize-y"></textarea>
         </div>
         
@@ -107,7 +107,7 @@
           <h3 class="text-xl font-semibold flex items-center gap-2">
             <i data-lucide="clipboard-list" class="w-5 h-5 text-indigo-500"></i>
             歌單預覽
-        _ </h3>
+          </h3>
           <span class="song-count bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 px-3 py-1 rounded-full text-sm font-medium" id="songCount">0 首歌曲</span>
         </div>
         
@@ -178,25 +178,22 @@ COCOCO feat.舞客星
       songCountElement.textContent = `${actualSongCount} 首歌曲`;
     }
 
-    // 繪製歌單到 HTML (取代 Canvas)
-    function renderSongList(songList) {
-      const container = document.getElementById('songListContainer');
-      const placeholder = document.getElementById('listPlaceholder');
-      container.innerHTML = ''; // 清空舊內容
+    // *** 關鍵修復： renderSongList 函數 ***
+    // 參數增加了 container 和 placeholder，確保它們從 DOMContentLoaded 傳遞進來
+    function renderSongList(songList, container, placeholder) {
+      // 清空容器
+      container.innerHTML = ''; 
 
       if (songList.length === 0) {
-        // 檢查 placeholder 是否存在於 DOM 中，如果不存在則重新附加
-        if (!container.contains(placeholder)) {
-          container.appendChild(placeholder); 
+        // 如果歌單為空，**重新附加** placeholder 元素
+        if (placeholder) { 
+          container.appendChild(placeholder);
         }
         updateSongCount([]); // 傳入空陣列
         return;
       }
       
-      // 檢查 placeholder 是否存在於 DOM 中，如果存在則移除
-      if (placeholder && container.contains(placeholder)) {
-        placeholder.remove();
-      }
+      // (如果 songList.length > 0，placeholder 保持被移除狀態，這是對的)
 
       const listWrapper = document.createElement('div');
       listWrapper.className = "divide-y divide-gray-200 dark:divide-gray-700";
@@ -207,18 +204,18 @@ COCOCO feat.舞客星
         let titleColor = 'text-gray-800 dark:text-gray-200';
         let timeColor = 'text-indigo-600 dark:text-indigo-400';
         let timeAlignment = 'text-right';
-        let isTitleItem = false; // 是否為特殊標題
+        let isTitleItem = false; 
 
-// *** 特殊標題樣式 (例如 "安口曲：") ***
+        // 特殊標題樣式
         if (song.time === '—') {
-          iconName = 'star'; // 區段標題使用星號
+          iconName = 'star';
           iconColor = 'text-yellow-500';
-          titleColor = 'text-yellow-600 dark:text-yellow-400 font-bold'; // 粗體並高亮
+          titleColor = 'text-yellow-600 dark:text-yellow-400 font-bold';
           timeColor = 'text-gray-400 dark:text-gray-500';
-          timeAlignment = 'text-center'; // 置中破折號
+          timeAlignment = 'text-center';
           isTitleItem = true;
         } 
-        // *** (EXISTING LOGIC) ***
+        // 其他樣式
         else if (song.title.toLowerCase().includes('talking') || song.title.toLowerCase().includes('talk')) {
           iconName = 'message-circle';
           iconColor = 'text-purple-500';
@@ -233,7 +230,7 @@ COCOCO feat.舞客星
           titleColor = 'text-blue-700 dark:text-blue-300 font-medium';
         }
 
-        // *** 修改：特殊標題不顯示複製按鈕 ***
+        // 特殊標題不顯示複製按鈕
         const copyButtonHTML = isTitleItem ? '' : `
           <button 
             class="copy-btn flex-shrink-0 flex items-center gap-1.5 ml-4 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-medium rounded-md border border-gray-200 dark:border-gray-600 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all hover:bg-gray-200 dark:hover:bg-gray-600"
@@ -246,7 +243,7 @@ COCOCO feat.舞客星
           </button>
         `;
 
-        // *** 設計還原：所有項目都套用 hover ***
+        // 項目 HTML (設計已還原)
         const itemHTML = `
           <div class="flex items-center justify-between p-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150 group">
             <div class="flex items-center gap-3 flex-1 min-w-0">
@@ -276,21 +273,14 @@ COCOCO feat.舞客星
     function addListClickListeners() {
       document.querySelectorAll('.copy-btn').forEach(button => {
         button.addEventListener('click', () => {
-          // 1. 從 data attributes 獲取資訊
           const title = button.dataset.title;
-          
-          // 2. 從 input 欄位獲取最新資訊
           const eventDate = document.getElementById('eventDateInput').value;
           const artistName = document.getElementById('artistNameInput').value;
           const eventName = document.getElementById('eventNameInput').value;
-          
-          // 3. 組合最終文字
           const fullText = `${eventDate} ${artistName} - ${title} @ ${eventName}`;
           
-          // 4. 執行複製
           copyToClipboard(fullText);
           
-          // 5. 顯示 UI 反饋
           const copyIcon = button.querySelector('.copy-icon');
           const checkIcon = button.querySelector('.check-icon');
           const copyText = button.querySelector('.copy-text');
@@ -323,17 +313,11 @@ COCOCO feat.舞客星
         return lines.map((line) => {
           const title = line.replace(/^🎵\s*/, '').trim();
           if (title.endsWith('：') || title.endsWith(':')) {
-            return {
-              time: '—', 
-              title: title
-            };
+            return { time: '—', title: title };
           }
           songCounter++;
           const songNumber = String(songCounter).padStart(2, '0');
-          return {
-            time: `${songNumber}.`, 
-            title: title
-          };
+          return { time: `${songNumber}.`, title: title };
         });
       }
 
@@ -344,7 +328,7 @@ COCOCO feat.舞客星
 
       const isNewlineFormat = lines.some(line => 
         preciseTimeRegex.test(line) && 
-        lines.indexOf(line) + 1 < lines.length &&_
+        lines.indexOf(line) + 1 < lines.length && 
         !preciseTimeRegex.test(lines[lines.indexOf(line) + 1]) &&
         !timeWithTitleRegex.test(lines[lines.indexOf(line) + 1])
       );
@@ -357,7 +341,7 @@ COCOCO feat.舞客星
             const time = formatTime(line);
             if (i + 1 < lines.length && !preciseTimeRegex.test(lines[i+1]) && !timeWithTitleRegex.test(lines[i+1])) {
               let title = lines[i + 1].replace(/^🎵\s*/, '').trim();
-              i++; // 跳過下一行
+              i++; 
               parsedList.push({ time: time, title: title });
             }
           }
@@ -375,14 +359,14 @@ COCOCO feat.舞客星
             
             if (i + 1 < parts.length && !/^\d{1,2}:\d{2}$/.test(parts[i + 1].trim())) {
               title = parts[i + 1].replace(/^🎵\s*/, '').trim();
-              i++; // 跳過標題 part
+              i++; 
             }
             
             if (title) {
               parsedList.push({ time: time, title: title });
             }
           }
-  _     }
+        }
       }
       
       return parsedList;
@@ -397,7 +381,7 @@ COCOCO feat.舞客星
         return `${minutes}:${seconds}`;
       }
       return timeString;
-    }
+  _ }
 
     // 複製到剪貼簿 (已清理)
     async function copyToClipboard(text) {
@@ -422,12 +406,13 @@ COCOCO feat.舞客星
       }
     }
 
-    // 更新歌單
-    function updateSongListFromInput() {
-      const inputElement = document.getElementById('songListInput');
+    // *** 關鍵修復：更新函數簽名 ***
+    // 參數增加了 inputElement, container, placeholder
+    function updateSongListFromInput(inputElement, container, placeholder) {
       const rawInput = inputElement.value;
       const parsedSongs = parseSongList(rawInput);
-      renderSongList(parsedSongs);
+      // 將 container 和 placeholder 傳遞下去
+      renderSongList(parsedSongs, container, placeholder);
     }
     
     // 初始化深色模式切換 (已清理)
@@ -441,35 +426,47 @@ COCOCO feat.舞客星
       }
       
       // 點擊切換
-      toggle.addEventListener('click', () => {
-        htmlEl.classList.toggle('dark');
-      });
+      if (toggle) {
+        toggle.addEventListener('click', () => {
+          htmlEl.classList.toggle('dark');
+        });
+      }
     }
 
+    // *** 關鍵修復： DOMContentLoaded ***
     // 頁面載入完成後初始化
     window.addEventListener('DOMContentLoaded', () => {
-      // 1. 初始化圖示
-      // (此時 lucide.js 已因 defer 屬性而執行完畢)
+      // 0. 試圖初始化圖示 (defer 會確保 lucide 已載入)
       try {
         lucide.createIcons();
       } catch (e) {
         console.error("Lucide icons failed to create:", e);
       }
       
-      // 2. 初始化深色模式
+      // 1. 初始化深色模式
       initDarkMode();
       
-      // 3. 載入預設歌單
+      // 2. *** 關鍵：只在這裡獲取一次 DOM 元素 ***
+      const container = document.getElementById('songListContainer');
+      const placeholder = document.getElementById('listPlaceholder');
       const songListInput = document.getElementById('songListInput');
-      if(songListInput) {
+      const updateButton = document.getElementById('updateSongListButton');
+
+      // 3. 載入預設歌單
+      if(songListInput && container && placeholder) {
         songListInput.value = defaultSongListString;
-        updateSongListFromInput();
+        // *** 關鍵：傳遞元素 ***
+        updateSongListFromInput(songListInput, container, placeholder);
+      } else {
+        console.error("初始化失敗：找不到必要的 DOM 元素。");
       }
 
       // 4. 事件監聽器
-      const updateButton = document.getElementById('updateSongListButton');
-      if(updateButton) {
-        updateButton.addEventListener('click', updateSongListFromInput);
+      if(updateButton && songListInput && container && placeholder) {
+        updateButton.addEventListener('click', () => {
+          // *** 關鍵：傳遞元素 ***
+          updateSongListFromInput(songListInput, container, placeholder);
+        });
       }
     });
   </script>
