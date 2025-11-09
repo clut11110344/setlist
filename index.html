@@ -19,9 +19,6 @@
         font-family: 'Inter', 'Noto Sans TC', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
       }
     }
-  </style>
-  
-    <style>
     /* 自訂捲軸 (美化) */
     ::-webkit-scrollbar {
       width: 6px;
@@ -90,10 +87,11 @@
             歌單內容
           </h2>
                     <div class="instructions bg-blue-50 dark:bg-blue-900/50 border border-blue-200 dark:border-blue-700 text-blue-800 dark:text-blue-200 p-3 rounded-lg text-sm mb-4">
+EOD
             支援多種格式，系統會自動解析。<br>
-            <strong>格式1：</strong> 00:00 intro 03:41 Baddie<br>
-            <strong>格式2：</strong> 換行分隔 (時間與歌名各佔一行)<br>
-            <strong>格式3：</strong> 純歌單 (一行一首，無時間)
+            <strong>格式1 (時間+歌名):</strong> 00:00 intro 03:41 Baddie<br>
+            <strong>格式2 (換行分隔):</strong> 時間與歌名各佔一行<br>
+            <strong>格式3 (純歌名):</strong> 僅歌名列表 (將自動編號)
           </div>
                     <textarea id="songListInput" placeholder="請輸入歌單內容..." class="w-full flex-1 min-h-[150px] p-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 transition resize-y"></textarea>
         </div>
@@ -112,6 +110,7 @@
             歌單預覽
           </h3>
           <span class="song-count bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 px-3 py-1 rounded-full text-sm font-medium" id="songCount">0 首歌曲</span>
+eod
         </div>
         
                 <div class="canvas-container flex-1 h-96 md:h-[500px] lg:h-[600px] overflow-y-auto" id="songListContainer">
@@ -129,34 +128,36 @@
     <div class="message-box fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 px-5 py-3 rounded-lg shadow-xl text-sm font-medium opacity-0 transition-all duration-300 transform translate-y-4" id="messageBox">
       </div>
 
-    <script>
-    // 預設歌單內容
-    const defaultSongListString = `0:00
-WheeIn
-0:12
-🎵water color
-3:35
-🎵Spark
-7:00
-talking
-10:20
-🎵EASY
-13:29
-🎵Bite Me
-16:12
-talking
-21:10
-🎵Butterfly 세 번의 날갯짓을 약속해
-24:44
-🎵coco water
-27:22
-talking
-31:02
-大合照
-32:58
-🎵D-DAY
-36:11
-🎵Wheee 휘이`;
+  <script>
+    // 預設歌單內容 (已更新為您提供的 HUR+ 範例)
+    const defaultSongListString = `COCOCO
+ACT LIKE THAT
+V.I.P
+OH!
+BADASS
+ALBINO
+GIRL TALK
+CATCH YOU
+NICO solo：You&Me
+AYAKO solo：Bet On Me
+AYEON solo：Cruel Summer
+YUAN solo ：我是真的很愛很愛你
+XXIN solo：STAR改編版（XXIN改編）
+LILI solo：POKER FACE
+嘉賓-SEVEN TO EIGHT
+BANG BANG BANG
+Gummy bear
+DRIP&DROP
+SO WHAT
+TRIP
+CHECKMATE
+SOLW DOWN
+1000次也不夠的想念
+天空沒有極限
+安口曲：
+COCOCO feat.舞客星
+專屬的夏天（韓文版）
+夢想塗鴉冊color paper`;
 
     // 顯示訊息框
     function showMessageBox(message) {
@@ -184,27 +185,13 @@ talking
       container.innerHTML = ''; // 清空舊內容
 
       if (songList.length === 0) {
-        // 確保 placeholder 存在 DOM 中 (如果它被移除了)
-        if (!document.getElementById('listPlaceholder')) {
-          const newPlaceholder = document.createElement('div');
-          newPlaceholder.id = 'listPlaceholder';
-          newPlaceholder.className = 'flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400 p-4 text-center';
-          newPlaceholder.innerHTML = `
-            <i data-lucide="list-checks" class="w-16 h-16 text-gray-400 dark:text-gray-500 mb-4"></i>
-            <p class="text-lg font-medium">請輸入歌單內容</p>
-            <p class="text-sm">點擊「更新歌單」後將在此顯示預覽</p>
-          `;
-          container.appendChild(newPlaceholder);
-          lucide.createIcons(); // 重新渲染圖示
-        } else {
-          container.appendChild(placeholder); // 顯示預設提示
-        }
+        container.appendChild(placeholder); // 顯示預設提示
         updateSongCount(0);
         return;
       }
       
-      // 如果 placeholder 存在，則移除
-      if (placeholder) {
+      // 檢查 placeholder 是否存在於 DOM 中，如果存在則移除
+      if (document.body.contains(placeholder)) {
         placeholder.remove();
       }
 
@@ -216,13 +203,18 @@ talking
         let iconColor = 'text-gray-500 dark:text-gray-400';
         let titleColor = 'text-gray-800 dark:text-gray-200';
         let timeColor = 'text-indigo-600 dark:text-indigo-400';
+        let timeAlignment = 'text-right';
 
-        // 針對純歌單的編號 (例如 "01.") 調整樣式
-        if (song.time.endsWith('.')) {
-          timeColor = 'text-gray-500 dark:text-gray-400';
-        }
-
-        if (song.title.toLowerCase().includes('talking') || song.title.toLowerCase().includes('talk') || song.title.toLowerCase().includes('安口曲')) {
+        // *** NEW: 特殊標題樣式 (例如 "安口曲：") ***
+        if (song.time === '—') {
+          iconName = 'star'; // 區段標題使用星號
+          iconColor = 'text-yellow-500';
+          titleColor = 'text-yellow-600 dark:text-yellow-400 font-bold'; // 粗體並高亮
+          timeColor = 'text-gray-400 dark:text-gray-500';
+          timeAlignment = 'text-center'; // 置中破折號
+        } 
+        // *** (EXISTING LOGIC) ***
+        else if (song.title.toLowerCase().includes('talking') || song.title.toLowerCase().includes('talk')) {
           iconName = 'message-circle';
           iconColor = 'text-purple-500';
           titleColor = 'text-purple-700 dark:text-purple-300 font-medium';
@@ -230,20 +222,16 @@ talking
           iconName = 'camera';
           iconColor = 'text-orange-500';
           titleColor = 'text-orange-700 dark:text-orange-300 font-medium';
-        } else if (song.title.toLowerCase().includes('intro') || song.title.toLowerCase().includes('outro') || song.title.toLowerCase().includes('solo')) {
+        } else if (song.title.toLowerCase().includes('intro') || song.title.toLowerCase().includes('outro')) {
           iconName = 'clapperboard';
           iconColor = 'text-blue-500';
           titleColor = 'text-blue-700 dark:text-blue-300 font-medium';
-        } else if (song.title.toLowerCase().includes('嘉賓') || song.title.toLowerCase().includes('feat.')) {
-          iconName = 'users';
-          iconColor = 'text-teal-500';
-          titleColor = 'text-teal-700 dark:text-teal-300 font-medium';
         }
 
         const itemHTML = `
           <div class="flex items-center justify-between p-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150 group">
             <div class="flex items-center gap-3 flex-1 min-w-0">
-              <span class="font-mono text-sm font-medium ${timeColor} w-12 text-right">${song.time}</span>
+                            <span class="font-mono text-sm font-medium ${timeColor} w-12 ${timeAlignment} flex-shrink-0">${song.time}</span>
               <i data-lucide="${iconName}" class="w-4 h-4 ${iconColor} flex-shrink-0"></i>
               <span class="${titleColor} truncate" title="${song.title}">${song.title}</span>
             </div>
@@ -285,13 +273,13 @@ talking
           const artistName = document.getElementById('artistNameInput').value;
           const eventName = document.getElementById('eventNameInput').value;
           
-          // 3. 組合最終文字 (注意：這裡的邏輯是複製歌曲標題，而不是時間)
+          // 3. 組合最終文字 (注意：複製的內容不包含時間/編號，這是故意的)
           const fullText = `${eventDate} ${artistName} - ${title} @ ${eventName}`;
           
           // 4. 執行複製
           copyToClipboard(fullText);
           
-           // 5. 顯示 UI 反饋
+          // 5. 顯示 UI 反饋
           const copyIcon = button.querySelector('.copy-icon');
           const checkIcon = button.querySelector('.check-icon');
           const copyText = button.querySelector('.copy-text');
@@ -309,50 +297,61 @@ talking
       });
     }
 
-    // ==========================================================
-    // ⭐️ 函數已更新：改進的歌單解析函數 - 支援多種格式 ⭐️
-    // ==========================================================
+    // *** UPDATED: 改進的歌單解析函數 - 支援多種格式 ***
     function parseSongList(inputString) {
       const parsedList = [];
+      
+      // --- NEW: 格式 3 檢測 (純歌單列表) ---
+      const anyTimeRegex = /\d{1,2}:\d{2}/; // 檢查是否存在 *任何* 時間戳記
+      
+      if (!anyTimeRegex.test(inputString)) {
+        // 如果 *沒有* 任何時間戳記，則視為純歌名列表 (格式 3)
+        const lines = inputString.split('\n')
+                      .map(line => line.trim())
+                      .filter(line => line);
+        
+        let songCounter = 0; // 歌曲編號計數器
+        return lines.map((line, index) => {
+          const title = line.replace(/^🎵\s*/, '').trim();
+          // 檢查是否為特殊標題 (e.g., 安口曲：)
+          if (title.endsWith('：') || title.endsWith(':')) {
+            return {
+              time: '—', // 特殊標題不編號，給個分隔符
+              title: title
+            };
+          }
+          // 否則，是正常歌曲，增加編號
+          songCounter++;
+          const songNumber = String(songCounter).padStart(2, '0');
+          return {
+            time: `${songNumber}.`, // 使用 "01.", "02." 作為編號
+            title: title
+          };
+        });
+      }
+      // --- END NEW LOGIC ---
+
+      // --- EXISTING LOGIC (格式 1 & 2) ---
       const lines = inputString.split('\n').map(line => line.trim()).filter(line => line);
       
-      const timeRegex = /^\d{1,2}:\d{2}$/;
+      const preciseTimeRegex = /^\d{1,2}:\d{2}$/; // (原來的 timeRegex)
       const timeWithTitleRegex = /(\d{1,2}:\d{2})\s+(.+)/;
-      // 檢查是否包含任何時間戳記
-      const hasTimestamps = /\d{1,2}:\d{2}/.test(inputString);
 
-      if (!hasTimestamps) {
-        // --- 格式3：純歌單 (無時間) ---
-        // 這是新的格式，只有歌名，一行一首
-        lines.forEach((title, index) => {
-          if (title) { // 確保不是空行
-            const formattedIndex = String(index + 1).padStart(2, '0'); // 格式化為 "01", "02"
-            parsedList.push({ 
-              time: `${formattedIndex}.`, // 使用 "01." 作為 "time" 欄位
-              title: title.replace(/^🎵\s*/, '').trim() 
-            });
-          }
-        });
-        return parsedList; // 處理完畢，直接返回
-      }
-
-      // --- 如果有時間戳記，執行原有邏輯 ---
-
-      // 檢測是否為換行分隔格式 (格式2)
+      // 檢測是否為換行分隔格式 (格式 2)
       const isNewlineFormat = lines.some(line => 
-        timeRegex.test(line) && 
-        lines.indexOf(line) + 1 < lines.length &&s
-        !timeRegex.test(lines[lines.indexOf(line) + 1]) &&
+        preciseTimeRegex.test(line) && 
+        lines.indexOf(line) + 1 < lines.length && 
+        !preciseTimeRegex.test(lines[lines.indexOf(line) + 1]) &&
         !timeWithTitleRegex.test(lines[lines.indexOf(line) + 1])
       );
       
       if (isNewlineFormat) {
-        // --- 處理格式2：換行分隔 (時間和歌名各佔一行) ---
+        // 處理換行分隔格式
         for (let i = 0; i < lines.length; i++) {
           const line = lines[i];
-          if (timeRegex.test(line)) {
+          if (preciseTimeRegex.test(line)) {
             const time = formatTime(line);
-            if (i + 1 < lines.length && !timeRegex.test(lines[i+1]) && !timeWithTitleRegex.test(lines[i+1])) {
+            if (i + 1 < lines.length && !preciseTimeRegex.test(lines[i+1]) && !timeWithTitleRegex.test(lines[i+1])) {
               let title = lines[i + 1].replace(/^🎵\s*/, '').trim();
               i++; // 跳過下一行（已經處理過的標題）
               parsedList.push({ time: time, title: title });
@@ -360,8 +359,7 @@ talking
           }
         }
       } else {
-        // --- 處理格式1：單行格式 ---
-        // (e.g., "00:00 intro 03:41 Baddie" 或 "00:00 intro \n 03:41 Baddie")
+        // 處理單行格式 (格式 1: "00:00 intro 03:41 Baddie")
         const text = inputString.replace(/\n/g, ' ');
         const timePattern = /(\d{1,2}:\d{2})/g;
         // 1. 用時間戳記分割字串
@@ -378,6 +376,8 @@ talking
             if (i + 1 < parts.length && !/^\d{1,2}:\d{2}$/.test(parts[i + 1].trim())) {
               title = parts[i + 1].replace(/^🎵\s*/, '').trim();
               i++; // 跳過標題 part
+            } else if (i + 1 >= parts.length) {
+              // 這是最後一個時間戳記，但後面沒有標題了
             }
             
             if (title) {
@@ -402,7 +402,7 @@ talking
     }
 
     // 複製到剪貼簿 (降級處理使用 document.execCommand)
-nbsp;   async function copyToClipboard(text) {
+    async function copyToClipboard(text) {
       try {
         if (navigator.clipboard && window.isSecureContext) {
           // 優先使用安全的方法
@@ -417,7 +417,7 @@ nbsp;   async function copyToClipboard(text) {
           tempTextArea.select();
           document.execCommand('copy');
           document.body.removeChild(tempTextArea);
-A       }
+        }
         showMessageBox('✅ 已複製到剪貼簿');
       } catch (err) {
         console.error('複製失敗:', err);
@@ -428,7 +428,7 @@ A       }
     // 更新歌單
     function updateSongListFromInput() {
       const inputElement = document.getElementById('songListInput');
-s     const rawInput = inputElement.value;
+      const rawInput = inputElement.value;
       const parsedSongs = parseSongList(rawInput);
       renderSongList(parsedSongs);
     }
@@ -438,22 +438,14 @@ s     const rawInput = inputElement.value;
       const toggle = document.getElementById('darkModeToggle');
       const htmlEl = document.documentElement;
       
-      // 檢查 localStorage 或 系統偏好
-      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      // 檢查系統偏好
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
         htmlEl.classList.add('dark');
-      } else {
-        htmlEl.classList.remove('dark');
       }
       
       // 點擊切換
       toggle.addEventListener('click', () => {
-        if (htmlEl.classList.contains('dark')) {
-          htmlEl.classList.remove('dark');
-          localStorage.theme = 'light';
-        } else {
-          htmlEl.classList.add('dark');
-          localStorage.theme = 'dark';
-        }
+        htmlEl.classList.toggle('dark');
       });
     }
 
@@ -463,11 +455,12 @@ s     const rawInput = inputElement.value;
       lucide.createIcons();
       
       // 初始化深色模式
-nbsp;     initDarkMode();
+      initDarkMode();
       
       // 載入預設歌單
       document.getElementById('songListInput').value = defaultSongListString;
-s     updateSongListFromInput();
+      // 立即更新一次，顯示預設歌單
+      updateSongListFromInput();
 
       // 事件監聽器
       document.getElementById('updateSongListButton').addEventListener('click', updateSongListFromInput);
