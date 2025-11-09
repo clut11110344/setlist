@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
   
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/lucide@latest" defer></script>
 
     <style type="text/tailwindcss">
     @layer base {
@@ -87,7 +87,6 @@
             歌單內容
           </h2>
                     <div class="instructions bg-blue-50 dark:bg-blue-900/50 border border-blue-200 dark:border-blue-700 text-blue-800 dark:text-blue-200 p-3 rounded-lg text-sm mb-4">
-EOD
             支援多種格式，系統會自動解析。<br>
             <strong>格式1 (時間+歌名):</strong> 00:00 intro 03:41 Baddie<br>
             <strong>格式2 (換行分隔):</strong> 時間與歌名各佔一行<br>
@@ -110,7 +109,6 @@ EOD
             歌單預覽
           </h3>
           <span class="song-count bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 px-3 py-1 rounded-full text-sm font-medium" id="songCount">0 首歌曲</span>
-eod
         </div>
         
                 <div class="canvas-container flex-1 h-96 md:h-[500px] lg:h-[600px] overflow-y-auto" id="songListContainer">
@@ -175,7 +173,9 @@ COCOCO feat.舞客星
     // 更新歌曲數量顯示
     function updateSongCount(count) {
       const songCountElement = document.getElementById('songCount');
-      songCountElement.textContent = `${count} 首歌曲`;
+      // *** 修改：計算時過濾掉特殊標題 ***
+      const actualSongCount = count.filter(song => song.time !== '—').length;
+      songCountElement.textContent = `${actualSongCount} 首歌曲`;
     }
 
     // 繪製歌單到 HTML (取代 Canvas)
@@ -186,12 +186,12 @@ COCOCO feat.舞客星
 
       if (songList.length === 0) {
         container.appendChild(placeholder); // 顯示預設提示
-        updateSongCount(0);
+        updateSongCount([]); // 傳入空陣列
         return;
       }
       
       // 檢查 placeholder 是否存在於 DOM 中，如果存在則移除
-      if (document.body.contains(placeholder)) {
+      if (placeholder && document.body.contains(placeholder)) {
         placeholder.remove();
       }
 
@@ -204,14 +204,16 @@ COCOCO feat.舞客星
         let titleColor = 'text-gray-800 dark:text-gray-200';
         let timeColor = 'text-indigo-600 dark:text-indigo-400';
         let timeAlignment = 'text-right';
+        let isTitleItem = false; // 是否為特殊標題
 
-        // *** NEW: 特殊標題樣式 (例如 "安口曲：") ***
+        // *** 特殊標題樣式 (例如 "安口曲：") ***
         if (song.time === '—') {
           iconName = 'star'; // 區段標題使用星號
           iconColor = 'text-yellow-500';
           titleColor = 'text-yellow-600 dark:text-yellow-400 font-bold'; // 粗體並高亮
           timeColor = 'text-gray-400 dark:text-gray-500';
           timeAlignment = 'text-center'; // 置中破折號
+          isTitleItem = true;
         } 
         // *** (EXISTING LOGIC) ***
         else if (song.title.toLowerCase().includes('talking') || song.title.toLowerCase().includes('talk')) {
@@ -228,22 +230,27 @@ COCOCO feat.舞客星
           titleColor = 'text-blue-700 dark:text-blue-300 font-medium';
         }
 
+        // *** 修改：特殊標題不顯示複製按鈕 ***
+        const copyButtonHTML = isTitleItem ? '' : `
+          <button 
+            class="copy-btn flex-shrink-0 flex items-center gap-1.5 ml-4 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-medium rounded-md border border-gray-200 dark:border-gray-600 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all hover:bg-gray-200 dark:hover:bg-gray-600"
+            data-time="${song.time}"
+            data-title="${song.title}"
+          >
+            <i data-lucide="clipboard" class="w-3.5 h-3.5 copy-icon"></i>
+            <i data-lucide="check" class="w-3.5 h-3.5 check-icon hidden text-green-500"></i>
+            <span class="copy-text">複製</span>
+          </button>
+        `;
+
         const itemHTML = `
-          <div class="flex items-center justify-between p-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150 group">
+          <div class="flex items-center justify-between p-3.5 ${isTitleItem ? 'bg-gray-50 dark:bg-gray-700/50' : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'} transition-colors duration-150 group">
             <div class="flex items-center gap-3 flex-1 min-w-0">
-                            <span class="font-mono text-sm font-medium ${timeColor} w-12 ${timeAlignment} flex-shrink-0">${song.time}</span>
+              <span class="font-mono text-sm font-medium ${timeColor} w-12 ${timeAlignment} flex-shrink-0">${song.time}</span>
               <i data-lucide="${iconName}" class="w-4 h-4 ${iconColor} flex-shrink-0"></i>
               <span class="${titleColor} truncate" title="${song.title}">${song.title}</span>
             </div>
-            <button 
-              class="copy-btn flex-shrink-0 flex items-center gap-1.5 ml-4 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-medium rounded-md border border-gray-200 dark:border-gray-600 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all hover:bg-gray-200 dark:hover:bg-gray-600"
-              data-time="${song.time}"
-              data-title="${song.title}"
-            >
-              <i data-lucide="clipboard" class="w-3.5 h-3.5 copy-icon"></i>
-              <i data-lucide="check" class="w-3.5 h-3.5 check-icon hidden text-green-500"></i>
-              <span class="copy-text">複製</span>
-            </button>
+            ${copyButtonHTML}
           </div>
         `;
         listWrapper.innerHTML += itemHTML;
@@ -254,8 +261,8 @@ COCOCO feat.舞客星
       // 渲染圖示
       lucide.createIcons();
       
-      // 更新歌曲數量
-      updateSongCount(songList.length);
+      // 更新歌曲數量 (傳入完整陣列)
+      updateSongCount(songList);
       
       // 為新產生的按鈕綁定事件
       addListClickListeners();
@@ -273,7 +280,7 @@ COCOCO feat.舞客星
           const artistName = document.getElementById('artistNameInput').value;
           const eventName = document.getElementById('eventNameInput').value;
           
-          // 3. 組合最終文字 (注意：複製的內容不包含時間/編號，這是故意的)
+          // 3. 組合最終文字
           const fullText = `${eventDate} ${artistName} - ${title} @ ${eventName}`;
           
           // 4. 執行複製
@@ -311,7 +318,7 @@ COCOCO feat.舞客星
                       .filter(line => line);
         
         let songCounter = 0; // 歌曲編號計數器
-        return lines.map((line, index) => {
+        return lines.map((line) => {
           const title = line.replace(/^🎵\s*/, '').trim();
           // 檢查是否為特殊標題 (e.g., 安口曲：)
           if (title.endsWith('：') || title.endsWith(':')) {
@@ -353,7 +360,7 @@ COCOCO feat.舞客星
             const time = formatTime(line);
             if (i + 1 < lines.length && !preciseTimeRegex.test(lines[i+1]) && !timeWithTitleRegex.test(lines[i+1])) {
               let title = lines[i + 1].replace(/^🎵\s*/, '').trim();
-              i++; // 跳過下一行（已經處理過的標題）
+      * i++; // 跳過下一行（已經處理過的標題）
               parsedList.push({ time: time, title: title });
             }
           }
@@ -370,7 +377,7 @@ COCOCO feat.舞客星
           // 檢查當前 part 是否為時間
           if (/^\d{1,2}:\d{2}$/.test(parts[i].trim())) {
             const time = formatTime(parts[i].trim());
-            let title = "";
+      _       let title = "";
             
             // 檢查下一個 part 是否存在且 *不是* 時間
             if (i + 1 < parts.length && !/^\d{1,2}:\d{2}$/.test(parts[i + 1].trim())) {
@@ -402,7 +409,7 @@ COCOCO feat.舞客星
     }
 
     // 複製到剪貼簿 (降級處理使用 document.execCommand)
-    async function copyToClipboard(text) {
+HUR+     async function copyToClipboard(text) {
       try {
         if (navigator.clipboard && window.isSecureContext) {
           // 優先使用安全的方法
@@ -420,7 +427,7 @@ COCOCO feat.舞客星
         }
         showMessageBox('✅ 已複製到剪貼簿');
       } catch (err) {
-        console.error('複製失敗:', err);
+    D-DAY     console.error('複製失敗:', err);
         showMessageBox('❌ 複製失敗，請手動複製');
       }
     }
@@ -435,6 +442,7 @@ COCOCO feat.舞客星
     
     // 初始化深色模式切換
     function initDarkMode() {
+EOD
       const toggle = document.getElementById('darkModeToggle');
       const htmlEl = document.documentElement;
       
@@ -446,26 +454,30 @@ COCOCO feat.舞客星
       // 點擊切換
       toggle.addEventListener('click', () => {
         htmlEl.classList.toggle('dark');
-      });
+indie     });
     }
 
+    // *** 關鍵修改：改回 DOMContentLoaded ***
     // 頁面載入完成後初始化
-    window.addEventListener('load', () => {
-      // 初始化圖示
-      lucide.createIcons();
+    window.addEventListener('DOMContentLoaded', () => {
+      // 1. 初始化圖示
+      // (此時 lucide.js 已因 defer 屬性而執行完畢)
+      try {
+        lucide.createIcons();
+      } catch (e) {
+        console.error("Lucide icons failed to create. Error:", e);
+      }
       
-      // 初始化深色模式
+      // 2. 初始化深色模式
       initDarkMode();
       
-      // 載入預設歌單
+      // 3. 載入預設歌單
       document.getElementById('songListInput').value = defaultSongListString;
-      // 立即更新一次，顯示預設歌單
       updateSongListFromInput();
 
-      // 事件監聽器
+      // 4. 事件監聽器
       document.getElementById('updateSongListButton').addEventListener('click', updateSongListFromInput);
     });
   </script>
 </body>
 </html>
-
