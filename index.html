@@ -71,6 +71,25 @@
             opacity: 1;
             visibility: visible;
         }
+
+        /* 拖曳中的項目樣式 */
+        .dragging-item {
+            opacity: 0.5;
+            background: #e0e7ff; /* indigo-100 */
+        }
+        .dark .dragging-item {
+            background: #3730a3; /* indigo-900 */
+        }
+
+        /* 拖曳經過的目標樣式 */
+        .drag-over-target {
+            background-color: #DBEAFE !important; /* blue-100 */
+            outline: 2px dashed #3B82F6; /* blue-500 */
+            outline-offset: -4px;
+        }
+        .dark .drag-over-target {
+            background-color: #1E3A8A !important; /* blue-900 */
+        }
     </style>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen">
@@ -142,7 +161,7 @@
                 </span>
             </div>
             
-            <div id="setlistOutput" class="h-[70vh] max-h-[700px] overflow-y-auto space-y-2 pr-2">
+            <div id="setlistOutput" class="h-[70vh] max-h-[700px] overflow-y-auto space-y-3 pr-2"> <!-- 調整間距 space-y-3 -->
                 <p class="text-gray-400 dark:text-gray-500 text-center pt-16">
                     請在左側貼上歌單並點擊「更新歌單」
                 </p>
@@ -188,6 +207,7 @@
             const copyAlert = $('#copyAlert');
 
             let parsedItems = []; // 用於儲存解析後的歌單項目
+            let draggedItemIndex = null; // 用於追蹤被拖曳的項目索引
 
             // --- 深色模式邏輯 ---
             const toggleDarkMode = (enable) => {
@@ -302,7 +322,7 @@
                 }
 
                 let itemCount = 0;
-                items.forEach(item => {
+                items.forEach((item, index) => { // 加入 index
                     if (item.type === 'header') {
                         const headerEl = document.createElement('h3');
                         headerEl.className = 'text-lg font-semibold text-blue-600 dark:text-blue-400 pt-3 pb-1 border-b-2 border-blue-200 dark:border-blue-800';
@@ -311,10 +331,13 @@
                     } else {
                         itemCount++;
                         const itemEl = document.createElement('div');
-                        itemEl.className = 'flex items-center justify-between p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 group';
+                        // 調整間距 p-3 並加上 cursor-grab
+                        itemEl.className = 'flex items-center justify-between p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 group cursor-grab active:cursor-grabbing';
+                        itemEl.setAttribute('draggable', 'true'); // 設為可拖曳
+                        itemEl.dataset.index = index; // 儲存索引
                         
                         const titleContent = `
-                            <div class="flex items-center min-w-0">
+                            <div class="flex items-center min-w-0 pointer-events-none"> <!-- 加上 pointer-events-none 避免干擾拖曳 -->
                                 <span class="text-xl mr-3">${item.icon}</span>
                                 <div class="min-w-0">
                                     ${item.time ? `<span class="text-xs font-mono text-gray-500 dark:text-gray-400">${item.time}</span>` : ''}
@@ -366,6 +389,80 @@
                     }
                 }
             });
+
+            // --- 拖曳組合功能 ---
+
+            // 輔助函數：取得最接近的可拖曳項目
+            const getDragTarget = (e) => e.target.closest('[draggable="true"]');
+
+            setlistOutput.addEventListener('dragstart', (e) => {
+                const target = getDragTarget(e);
+                if (!target) return;
+                draggedItemIndex = parseInt(target.dataset.index);
+                target.classList.add('dragging-item');
+                // 設置拖曳數據（雖然在這個應用中主要依賴 draggedItemIndex）
+                e.dataTransfer.setData('text/plain', draggedItemIndex);
+                e.dataTransfer.effectAllowed = 'move';
+            });
+
+            setlistOutput.addEventListener('dragover', (e) => {
+                e.preventDefault(); // 必須防止預設行為才能觸發 drop
+                const target = getDragTarget(e);
+                if (target && parseInt(target.dataset.index) !== draggedItemIndex) {
+                    // 移除其他項目的高亮
+                    $$('.drag-over-target').forEach(el => el.classList.remove('drag-over-target'));
+                    target.classList.add('drag-over-target');
+                    e.dataTransfer.dropEffect = 'move';
+                }
+            });
+
+            setlistOutput.addEventListener('dragleave', (e) => {
+                const target = getDragTarget(e);
+                if (target) {
+                    target.classList.remove('drag-over-target');
+                }
+            });
+
+            setlistOutput.addEventListener('drop', (e) => {
+                e.preventDefault();
+                const dropTarget = getDragTarget(e);
+                if (!dropTarget || draggedItemIndex === null) return;
+
+                const dropTargetIndex = parseInt(dropTarget.dataset.index);
+                dropTarget.classList.remove('drag-over-target');
+
+                // 不能丟在自己身上
+                if (dropTargetIndex === draggedItemIndex) return;
+
+                // 取得項目
+                const draggedItem = parsedItems[draggedItemIndex];
+                const targetItem = parsedItems[dropTargetIndex];
+
+                // 安全檢查
+                if (!draggedItem || !targetItem || draggedItem.type === 'header' || targetItem.type === 'header') {
+                    return;
+                }
+
+                // 組合歌名
+                targetItem.title = `${targetItem.title} + ${draggedItem.title}`;
+                
+                // 移除被拖曳的項目 (要小心索引)
+                parsedItems.splice(draggedItemIndex, 1);
+
+                // 重新渲染列表
+                renderSetlist(parsedItems);
+            });
+            
+            setlistOutput.addEventListener('dragend', (e) => {
+                // 清理樣式
+                const target = getDragTarget(e);
+                if (target) {
+                    target.classList.remove('dragging-item');
+                }
+                $$('.drag-over-target').forEach(el => el.classList.remove('drag-over-target'));
+                draggedItemIndex = null; // 重設索引
+            });
+
 
             // 顯示複製提示
             let alertTimer;
